@@ -2,14 +2,9 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
-import { OpenAIStream, StreamingTextResponse } from "ai";
-import { Configuration, OpenAIApi } from "openai-edge";
-
-// 配置OpenAI
-const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-const openai = new OpenAIApi(configuration);
+import { StreamingTextResponse } from "ai";
+import { KnowledgeService } from "@/lib/knowledge/service";
+import { DeepSeekService } from "@/lib/deepseek";
 
 // 使用nodejs运行时而不是edge运行时，确保能正确访问authOptions和prisma
 export const runtime = 'nodejs';
@@ -76,27 +71,37 @@ export async function POST(req: Request) {
 
     systemPrompt += `请使用轻松友好的风格，偶尔加入适当的表情符号，让交流更生动。`;
 
+    // 获取知识库相关内容（新增）
+    let knowledgePrompt = "";
+    if (user.subject && !isFirstChat) {
+      knowledgePrompt = await KnowledgeService.buildKnowledgePrompt(
+        message, 
+        user.subjectId || undefined
+      );
+    }
+    
+    if (knowledgePrompt) {
+      systemPrompt += `\n\n${knowledgePrompt}`;
+    }
+
     // 准备聊天历史
     const formattedPreviousMessages = chatHistory.map((chat: any) => ({
       role: chat.isUser ? "user" : "assistant",
       content: chat.message,
     }));
 
-    // 发送到OpenAI
-    const response = await openai.createChatCompletion({
-      model: "gpt-3.5-turbo",
+    // 发送到DeepSeek（替换OpenAI）
+    const response = await DeepSeekService.chat({
       messages: [
         { role: "system", content: systemPrompt },
         ...formattedPreviousMessages,
         { role: "user", content: message }
       ],
       stream: true,
-      temperature: 0.7,
-      max_tokens: 2000,
     });
 
     // 创建流式响应
-    const stream = OpenAIStream(response, {
+    const stream = DeepSeekService.processStream(response, {
       onCompletion: async (completion) => {
         // 存储AI回复
         await prisma.chatHistory.create({
