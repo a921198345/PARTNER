@@ -1,0 +1,197 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db{
+provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+
+
+
+
+
+// 用户模型
+model User {
+  id               String    @id @default(uuid())
+  name             String
+  email            String    @unique
+  password         String
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  subjectId        String?
+  subject          Subject?  @relation(fields: [subjectId], references: [id])
+  aiCharacterId    String?
+  aiCharacter      AICharacter? @relation(fields: [aiCharacterId], references: [id])
+  aiCustomName     String?   // AI的自定义名称
+  userNickname     String?   // 用户昵称
+  studyGoals       StudyGoal[]
+  studyRecords     StudyRecord[]
+  notes            Note[]
+  examAttempts     ExamAttempt[]
+  customVoice      String?   // 自定义语音文件路径
+  customFace       String?   // 自定义面部图像路径
+  currentStage     String?   // 当前学习阶段
+  dailyStudyGoal   Float?    // 每日学习目标时长（小时）
+  totalPoints      Int       @default(0) // 累计积分
+  chatHistories    ChatHistory[]
+}
+
+// AI角色模型
+model AICharacter {
+  id          String @id @default(uuid())
+  name        String // 角色名称
+  description String // 角色描述
+  gender      String // 性别
+  type        String // 类型（如萝莉、御姐等）
+  avatarUrl   String // 头像URL
+  users       User[]
+}
+
+// 科目模型
+model Subject {
+  id               String    @id @default(uuid())
+  name             String    // 科目名称(考公/教资/法考)
+  subcategories    SubCategory[]
+  users            User[]
+  knowledgeBases   KnowledgeBase[]
+  exams            Exam[]
+}
+
+// 科目子类别
+model SubCategory {
+  id               String    @id @default(uuid())
+  name             String    // 子类别名称
+  subject          Subject   @relation(fields: [subjectId], references: [id])
+  subjectId        String
+  knowledgeBases   KnowledgeBase[]
+  exams            Exam[]
+}
+
+// 知识库模型
+model KnowledgeBase {
+  id               String    @id @default(uuid())
+  title            String
+  content          String    @db.Text
+  fileUrl          String?   // 文件URL
+  subject          Subject   @relation(fields: [subjectId], references: [id])
+  subjectId        String
+  subCategory      SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// 学习目标模型
+model StudyGoal {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  title            String
+  description      String?
+  targetDate       DateTime
+  completed        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// 学习记录模型
+model StudyRecord {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  date             DateTime  @default(now())
+  duration         Float     // 学习时长(小时)
+  websites         String[]  // 访问的网站列表
+  completed        Boolean   @default(false) // 是否完成当日目标
+}
+
+// 笔记模型
+model Note {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  title            String
+  content          String    @db.Text
+  mindMap          Json?     // 思维导图JSON
+  attachments      Attachment[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// 附件模型
+model Attachment {
+  id               String    @id @default(uuid())
+  note             Note      @relation(fields: [noteId], references: [id])
+  noteId           String
+  fileUrl          String
+  fileType         String    // 文档/图片/视频
+  createdAt        DateTime  @default(now())
+}
+
+// 考试模型
+model Exam {
+  id               String    @id @default(uuid())
+  title            String
+  description      String?
+  subject          Subject   @relation(fields: [subjectId], references: [id])
+  subjectId        String
+  subCategory      SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId    String?
+  year             Int?      // 年份
+  questions        Question[]
+  examAttempts     ExamAttempt[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// 问题模型
+model Question {
+  id               String    @id @default(uuid())
+  exam             Exam      @relation(fields: [examId], references: [id])
+  examId           String
+  content          String    @db.Text
+  options          String[]  // 选项
+  correctAnswer    String    // 正确答案
+  explanation      String?   @db.Text // 解析
+  knowledgePoints  String[]  // 相关知识点
+  answerAttempts   AnswerAttempt[]
+}
+
+// 考试尝试模型
+model ExamAttempt {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  exam             Exam      @relation(fields: [examId], references: [id])
+  examId           String
+  startTime        DateTime  @default(now())
+  endTime          DateTime?
+  score            Float?
+  answerAttempts   AnswerAttempt[]
+}
+
+// 答题尝试模型
+model AnswerAttempt {
+  id               String    @id @default(uuid())
+  examAttempt      ExamAttempt @relation(fields: [examAttemptId], references: [id])
+  examAttemptId    String
+  question         Question  @relation(fields: [questionId], references: [id])
+  questionId       String
+  userAnswer       String
+  isCorrect        Boolean
+  createdAt        DateTime  @default(now())
+}
+
+// 聊天历史模型
+model ChatHistory {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  message          String    @db.Text
+  isUser           Boolean   // true为用户消息，false为AI消息
+  timestamp        DateTime  @default(now())
+} 

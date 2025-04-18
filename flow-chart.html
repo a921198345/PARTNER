@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI考试陪伴系统流程图</title>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f6f8fa;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2 {
+            color: #333;
+            border-bottom: 2px solid #4f46e5;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .chart-container {
+            margin-bottom: 40px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+        }
+        .description {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #4f46e5;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI考试陪伴系统流程图</h1>
+        
+        <div class="chart-container">
+            <h2>1. 核心用户流程</h2>
+            <div class="description">
+                展示用户从进入系统到使用各项功能的主要流程
+            </div>
+            <div class="mermaid">
+graph TD
+    A[访问网站] --> B{是否有账户?}
+    B -->|否| C[注册新账户]
+    B -->|是| D[登录]
+    
+    C --> E[新用户引导流程]
+    D --> F[主界面]
+    E --> F
+    
+    %% 新用户引导流程
+    E --> E1[选择考试类型]
+    E1 --> E2[选择AI角色]
+    E2 --> E3[设置昵称]
+    E3 --> F
+    
+    %% 主界面功能
+    F --> G[AI对话]
+    F --> I[学习计划]
+    F --> J[笔记系统]
+    F --> K[真题题库]
+    
+    %% AI对话功能
+    G --> G1{首次对话?}
+    G1 -->|是| G2[AI引导设置学习时长]
+    G1 -->|否| G3[常规对话]
+    G2 --> G4[确认每日目标]
+    G4 --> G3
+    G3 --> G5{需要调整计划?}
+    G5 -->|是| G2
+    G5 -->|否| G3
+    
+    style A fill:#4f46e5,color:white
+    style F fill:#ec4899,color:white
+    style G,I,J,K fill:#818cf8,color:white
+    style E1,E2,E3 fill:#10b981,color:white
+    style G2,G4 fill:#10b981,color:white
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>2. AI角色选择流程</h2>
+            <div class="description">
+                展示用户如何选择AI角色
+            </div>
+            <div class="mermaid">
+graph TD
+    A1[进入角色选择] --> A2{选择性别}
+    A2 -->|女性角色| B1[选择女性角色类型]
+    A2 -->|男性角色| B2[选择男性角色类型]
+    
+    B1 --> C1[萝莉]
+    B1 --> C2[御姐]
+    B1 --> C3[温柔可爱少女]
+    B1 --> C4[活泼可爱少女]
+    
+    B2 --> D1[大叔]
+    B2 --> D2[阳光少年]
+    B2 --> D3[冷酷系]
+    B2 --> D4[王子系]
+    
+    C1 & C2 & C3 & C4 & D1 & D2 & D3 & D4 --> E1[完成角色选择]
+    
+    style A1 fill:#4f46e5,color:white
+    style E1 fill:#ec4899,color:white
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>3. 学习计划流程</h2>
+            <div class="description">
+                展示学习时长监控和执行过程
+            </div>
+            <div class="mermaid">
+graph TD
+    A[AI对话设置学习时长] --> B[开始监控学习]
+    B --> C[统计浏览相关网页时长]
+    C --> D[实时展示学习时间]
+    D --> E{是否达到目标时长?}
+    
+    E -->|达标| F1[获得奖励积分]
+    E -->|未达标| F2[AI主动对话提醒]
+    
+    F1 --> G[更新每日进度]
+    F2 --> H[AI分析学习状态]
+    G & H --> I[生成周学习报告]
+    I --> J{需要调整目标?}
+    J -->|是| K[AI对话调整时长]
+    J -->|否| B
+    
+    K --> L[确认新目标]
+    L --> B
+    
+    style A fill:#4f46e5,color:white
+    style D fill:#ec4899,color:white
+    style H,K fill:#10b981,color:white
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>4. 笔记系统流程</h2>
+            <div class="description">
+                展示笔记的创建和管理流程
+            </div>
+            <div class="mermaid">
+graph TD
+    A[进入笔记系统] --> B{选择记录方式}
+    B -->|文字| C1[文本编辑]
+    B -->|拍照| C2[OCR识别]
+    B -->|上传| C3[文档解析]
+    B -->|网页| C4[内容提取]
+    
+    C1 & C2 & C3 & C4 --> D[内容处理]
+    D --> E[生成思维导图]
+    E --> F[保存分类]
+    F --> G[知识库更新]
+    
+    style A fill:#4f46e5,color:white
+    style D fill:#ec4899,color:white
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <h2>5. 真题题库流程</h2>
+            <div class="description">
+                展示真题练习的完整流程，包含智能判断和错题处理
+            </div>
+            <div class="mermaid">
+graph TD
+    A[进入真题题库] --> B{选择练习模式}
+    B --> C1[章节练习]
+    B --> C2[按年练习]
+    B --> C3[错题练习]
+    
+    C1 & C2 & C3 --> D[开始答题]
+    D --> E[提交答案]
+    E --> F{判断答案}
+    
+    F -->|正确| G1[显示简要说明]
+    F -->|错误| G2[显示详细解析]
+    
+    G1 --> H1[进入下一题]
+    
+    G2 --> H2[生成知识点]
+    H2 --> I[相关知识串讲]
+    G2 --> J[自动加入错题本]
+    I & J --> H1
+    
+    style A fill:#4f46e5,color:white
+    style D fill:#ec4899,color:white
+    style F fill:#f59e0b,color:white
+    style G2,H2,I fill:#10b981,color:white
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis'
+            }
+        });
+    </script>
+</body>
+</html> 
