@@ -193,15 +193,15 @@ export async function POST(req: NextRequest) {
     // 创建文档记录
     const document = await prisma.document.create({
       data: {
-        name: fileName,
-        type: fileType,
-        size: fileSize,
-        path: filePath,
+        title: fileName,
+        fileName: fileName,
+        fileType: fileType,
+        fileSize: fileSize,
+        fileUrl: filePath,
         description,
-        tags,
-        status: "pending", // 初始状态为待处理
         subjectId,
-        userId: session.user.id,
+        uploadedById: session.user.id,
+        processingStatus: "pending", // 初始状态为待处理
       },
     });
 
@@ -244,7 +244,7 @@ export async function DELETE(req: NextRequest) {
     // 验证文档所有权
     const document = await prisma.document.findUnique({
       where: { id },
-      select: { userId: true, path: true },
+      select: { uploadedById: true, fileUrl: true },
     });
 
     if (!document) {
@@ -254,7 +254,7 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    if (document.userId !== session.user.id) {
+    if (document.uploadedById !== session.user.id) {
       return NextResponse.json(
         { error: "无权删除此文档" },
         { status: 403 }
@@ -263,7 +263,7 @@ export async function DELETE(req: NextRequest) {
 
     // 删除文件
     const processor = new DocumentProcessor();
-    await processor.deleteFile(document.path);
+    await processor.deleteFile(document.fileUrl);
 
     // 删除数据库记录及相关知识条目
     await prisma.$transaction([
