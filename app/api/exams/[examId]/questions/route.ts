@@ -3,10 +3,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// 修改路由参数类型为Next.js要求的标准格式
+// 修改为标准的Next.js App Router路由参数格式
 export async function GET(
   req: Request,
-  { params }: { params: { examId: string } }
+  context: { params: { examId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,7 +18,7 @@ export async function GET(
       );
     }
 
-    const { examId } = params;
+    const { examId } = context.params;
     const { searchParams } = new URL(req.url);
     
     // 检查是否请求错题
