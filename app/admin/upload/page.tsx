@@ -3,9 +3,6 @@
 import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import {
   Card,
   CardContent,
@@ -14,6 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import {
   Select,
   SelectContent,
@@ -22,333 +22,424 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import {
+  FileUp,
   Upload,
   File,
-  FileText,
-  FileImage,
-  AlertTriangle,
-  Check,
-  Clock,
+  AlertCircle,
+  Trash2,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { toast } from "sonner"
 import { Progress } from "@/components/ui/progress"
 
-// 示例数据
-const mockSubjects = [
-  { id: "1", name: "考公" },
-  { id: "2", name: "教资" },
-  { id: "3", name: "法考" },
-]
-
-const mockSubCategories = {
-  "1": [
-    { id: "101", name: "行政职业能力测验" },
-    { id: "102", name: "申论" },
-    { id: "103", name: "公共基础知识" },
-  ],
-  "2": [
-    { id: "201", name: "教育知识与能力" },
-    { id: "202", name: "综合素质" },
-    { id: "203", name: "学科知识" },
-  ],
-  "3": [
-    { id: "301", name: "民法" },
-    { id: "302", name: "刑法" },
-    { id: "303", name: "行政法" },
-  ],
-}
-
-export default function UploadDocumentPage() {
+export default function UploadPage() {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  const [selectedSubject, setSelectedSubject] = useState("")
-  const [selectedSubCategory, setSelectedSubCategory] = useState("")
-  const [subCategories, setSubCategories] = useState<{ id: string; name: string }[]>([])
-  
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [subject, setSubject] = useState("")
+  const [subCategory, setSubCategory] = useState("")
+  const [file, setFile] = useState<File | null>(null)
+  const [error, setError] = useState<string | null>(null)
   
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">("idle")
-  const [errorMessage, setErrorMessage] = useState("")
-
-  // 当选择学科变化时更新子类别
-  const handleSubjectChange = (value: string) => {
-    setSelectedSubject(value)
-    if (value) {
-      setSubCategories(mockSubCategories[value as keyof typeof mockSubCategories] || [])
-    } else {
-      setSubCategories([])
-    }
-    setSelectedSubCategory("")
-  }
+  const [isUploading, setIsUploading] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [progress, setProgress] = useState(0)
+  const [processingMessage, setProcessingMessage] = useState("")
+  const [knowledgePointCount, setKnowledgePointCount] = useState(0)
+  const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null)
 
   // 处理文件选择
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) {
-      setSelectedFile(null)
-      return
-    }
-    
-    const file = files[0]
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = event.target.files?.[0] || null
+    setFile(selectedFile)
+    setError(null)
     
     // 验证文件类型
-    const validTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
-    if (!validTypes.includes(file.type)) {
-      setErrorMessage("不支持的文件类型，请选择PDF、DOCX或TXT文件")
-      setUploadStatus("error")
-      setSelectedFile(null)
-      return
+    if (selectedFile) {
+      const validTypes = ['.pdf', '.docx', '.doc', '.txt', '.md', '.rtf']
+      const fileExtension = selectedFile.name.substring(selectedFile.name.lastIndexOf('.')).toLowerCase()
+      
+      if (!validTypes.includes(fileExtension)) {
+        setError(`不支持的文件类型。请上传以下格式：${validTypes.join(', ')}`)
+        setFile(null)
+        event.target.value = ''
+      } else if (selectedFile.size > 10 * 1024 * 1024) { // 10MB限制
+        setError('文件大小不能超过10MB')
+        setFile(null)
+        event.target.value = ''
+      }
     }
-    
-    // 验证文件大小 (10MB限制)
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMessage("文件过大，请选择小于10MB的文件")
-      setUploadStatus("error")
-      setSelectedFile(null)
-      return
+  }
+  
+  // 处理文件删除
+  const handleRemoveFile = () => {
+    setFile(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
-    
-    setSelectedFile(file)
-    setErrorMessage("")
-    setUploadStatus("idle")
   }
-
-  // 模拟文件上传进度
-  const simulateUploadProgress = () => {
-    setUploadProgress(0)
-    setUploadStatus("uploading")
-    
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        const newProgress = prev + Math.random() * 10
-        if (newProgress >= 100) {
-          clearInterval(interval)
-          setUploadStatus("success")
-          return 100
-        }
-        return newProgress
-      })
-    }, 300)
-  }
-
+  
   // 处理表单提交
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // 验证表单
-    if (!title || !selectedSubject || !selectedFile) {
-      setErrorMessage("请填写必填字段")
-      setUploadStatus("error")
+    if (!file) {
+      setError('请选择要上传的文件')
       return
     }
     
-    // 模拟上传
-    simulateUploadProgress()
-    
-    // 真实项目中这里应该调用API上传文件
-    // const formData = new FormData()
-    // formData.append('file', selectedFile)
-    // formData.append('title', title)
-    // formData.append('description', description)
-    // formData.append('subjectId', selectedSubject)
-    // if (selectedSubCategory) {
-    //   formData.append('subCategoryId', selectedSubCategory)
-    // }
-    
-    // 真实项目中应该上传完成后重定向
-    setTimeout(() => {
-      router.push('/admin/documents')
-    }, 5000)
-  }
-
-  // 获取文件图标
-  const getFileIcon = () => {
-    if (!selectedFile) return <File className="h-12 w-12 text-muted-foreground" />
-    
-    const fileType = selectedFile.type
-    
-    if (fileType === 'application/pdf') {
-      return <FileText className="h-12 w-12 text-red-500" />
-    } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-      return <FileText className="h-12 w-12 text-blue-500" />
-    } else if (fileType === 'text/plain') {
-      return <FileText className="h-12 w-12 text-gray-500" />
-    } else {
-      return <FileImage className="h-12 w-12 text-gray-500" />
+    if (!title.trim()) {
+      setError('请输入文档标题')
+      return
     }
+    
+    if (!subject) {
+      setError('请选择学科')
+      return
+    }
+    
+    try {
+      setIsUploading(true)
+      setProgress(0)
+      
+      // 创建FormData对象
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('title', title)
+      formData.append('description', description)
+      formData.append('subject', subject)
+      if (subCategory) {
+        formData.append('subCategory', subCategory)
+      }
+      
+      // 模拟上传进度
+      const progressInterval = setInterval(() => {
+        setProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return 90
+          }
+          return prev + 10
+        })
+      }, 300)
+      
+      // 上传文件并提取知识点
+      const response = await fetch('/api/admin/knowledge', {
+        method: 'POST',
+        body: formData,
+      })
+      
+      clearInterval(progressInterval)
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || '上传失败')
+      }
+      
+      setProgress(100)
+      setIsUploading(false)
+      setIsProcessing(true)
+      setProcessingMessage('正在提取知识点...')
+      
+      // 处理流式响应
+      const reader = response.body?.getReader()
+      if (!reader) throw new Error('无法读取响应')
+      
+      const decoder = new TextDecoder()
+      let processedText = ''
+      let documentId = null
+      let knowledgeCount = 0
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read()
+          
+          if (done) {
+            break
+          }
+          
+          // 解码并处理流式数据
+          processedText += decoder.decode(value, { stream: true })
+          
+          // 寻找并解析JSON对象
+          const lines = processedText.split('\n')
+          let remainingText = ''
+          
+          for (const line of lines) {
+            if (!line.trim()) continue
+            
+            try {
+              const data = JSON.parse(line)
+              
+              if (data.type === 'processing') {
+                setProcessingMessage(data.message)
+              } else if (data.type === 'progress') {
+                setKnowledgePointCount(data.count)
+              } else if (data.type === 'complete') {
+                documentId = data.documentId
+                knowledgeCount = data.totalCount
+              }
+              
+            } catch (e) {
+              // 如果不是完整的JSON，保留剩余文本
+              remainingText += line + '\n'
+            }
+          }
+          
+          processedText = remainingText
+        }
+      } catch (error) {
+        console.error('处理流式响应失败', error)
+      }
+      
+      setUploadedDocumentId(documentId)
+      setKnowledgePointCount(knowledgeCount)
+      setIsProcessing(false)
+      
+      toast.success(`成功提取了 ${knowledgeCount} 个知识点`)
+      
+    } catch (error) {
+      setIsUploading(false)
+      setIsProcessing(false)
+      console.error('上传失败:', error)
+      setError(error instanceof Error ? error.message : '上传失败，请稍后重试')
+      toast.error('上传失败，请稍后重试')
+    }
+  }
+  
+  // 前往管理页面
+  const goToManagePage = () => {
+    router.push(uploadedDocumentId 
+      ? `/admin/knowledge?document=${uploadedDocumentId}` 
+      : '/admin/knowledge'
+    )
   }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">上传文档</h1>
-        <p className="text-sm text-muted-foreground">
-          上传学科知识文档，系统将自动提取知识点
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">上传文档</h1>
+          <p className="text-sm text-muted-foreground">
+            上传学科知识文档并提取知识点
+          </p>
+        </div>
+        <Button variant="outline" onClick={() => router.push('/admin/knowledge')}>
+          返回管理页面
+        </Button>
       </div>
 
       <Card>
+        <CardHeader>
+          <CardTitle>上传学科文档</CardTitle>
+          <CardDescription>
+            上传文档后，系统将自动提取其中的知识点。支持PDF、Word、TXT等格式。
+          </CardDescription>
+        </CardHeader>
+        
         <form onSubmit={handleSubmit}>
-          <CardHeader>
-            <CardTitle>文档信息</CardTitle>
-            <CardDescription>
-              请填写文档信息并选择要上传的文件
-            </CardDescription>
-          </CardHeader>
           <CardContent className="space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="title">文档标题 *</Label>
-              <Input
-                id="title"
-                placeholder="输入文档标题"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="description">文档描述</Label>
-              <Textarea
-                id="description"
-                placeholder="输入文档描述"
-                className="min-h-[100px]"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="subject">学科 *</Label>
-                <Select value={selectedSubject} onValueChange={handleSubjectChange}>
-                  <SelectTrigger id="subject">
-                    <SelectValue placeholder="选择学科" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {mockSubjects.map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="subcategory">子类别</Label>
-                <Select 
-                  value={selectedSubCategory} 
-                  onValueChange={setSelectedSubCategory}
-                  disabled={!selectedSubject}
-                >
-                  <SelectTrigger id="subcategory">
-                    <SelectValue placeholder={selectedSubject ? "选择子类别" : "请先选择学科"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {subCategories.map((subcategory) => (
-                      <SelectItem key={subcategory.id} value={subcategory.id}>
-                        {subcategory.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>文档文件 *</Label>
-              <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed rounded-md hover:border-primary/50 transition-colors">
-                <div className="flex flex-col items-center justify-center space-y-4">
-                  {getFileIcon()}
-                  
-                  <div className="text-center">
-                    {selectedFile ? (
-                      <div className="space-y-1">
-                        <p className="font-medium">{selectedFile.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <p className="font-medium">拖放文件或点击选择</p>
-                        <p className="text-sm text-muted-foreground">
-                          支持PDF、DOCX、TXT格式，文件大小限制10MB
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <Button 
-                    type="button" 
-                    variant="outline"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadStatus === "uploading"}
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>错误</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
+            {/* 文档基本信息 */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="title">文档标题 *</Label>
+                  <Input 
+                    id="title" 
+                    placeholder="输入文档标题" 
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    disabled={isUploading || isProcessing}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="subject">学科类别 *</Label>
+                  <Select 
+                    value={subject} 
+                    onValueChange={setSubject}
+                    disabled={isUploading || isProcessing}
                   >
-                    <Upload className="mr-2 h-4 w-4" />
-                    {selectedFile ? "更换文件" : "选择文件"}
-                  </Button>
-                  
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    className="hidden"
-                    accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
-                    onChange={handleFileChange}
+                    <SelectTrigger id="subject">
+                      <SelectValue placeholder="选择学科" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="考公">考公</SelectItem>
+                      <SelectItem value="教资">教资</SelectItem>
+                      <SelectItem value="法考">法考</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="subCategory">子分类</Label>
+                  <Select 
+                    value={subCategory} 
+                    onValueChange={setSubCategory}
+                    disabled={isUploading || isProcessing}
+                  >
+                    <SelectTrigger id="subCategory">
+                      <SelectValue placeholder="选择子分类（可选）" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="行政法">行政法</SelectItem>
+                      <SelectItem value="民法">民法</SelectItem>
+                      <SelectItem value="刑法">刑法</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="description">文档描述</Label>
+                  <Textarea 
+                    id="description" 
+                    placeholder="输入文档简短描述（可选）" 
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    disabled={isUploading || isProcessing}
                   />
                 </div>
               </div>
             </div>
-
-            {uploadStatus === "error" && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>上传错误</AlertTitle>
-                <AlertDescription>{errorMessage}</AlertDescription>
-              </Alert>
-            )}
-
-            {uploadStatus === "uploading" && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>上传进度</Label>
-                  <span className="text-sm text-muted-foreground">{Math.round(uploadProgress)}%</span>
+            
+            {/* 文件上传区域 */}
+            <div className="space-y-2">
+              <Label>上传文件 *</Label>
+              {!file ? (
+                <div className="flex flex-col items-center justify-center rounded-md border border-dashed p-8">
+                  <div className="space-y-2 text-center">
+                    <FileUp className="mx-auto h-10 w-10 text-muted-foreground" />
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium">拖放文件或点击上传</p>
+                      <p className="text-xs text-muted-foreground">
+                        支持 PDF、Word、TXT 等格式，最大 10MB
+                      </p>
+                    </div>
+                    <Button 
+                      variant="secondary" 
+                      size="sm"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading || isProcessing}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      选择文件
+                    </Button>
+                  </div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.doc,.txt,.md,.rtf"
+                    className="hidden"
+                    onChange={handleFileChange}
+                    disabled={isUploading || isProcessing}
+                  />
                 </div>
-                <Progress value={uploadProgress} className="h-2" />
+              ) : (
+                <div className="flex items-center justify-between rounded-md border p-4">
+                  <div className="flex items-center space-x-4">
+                    <File className="h-8 w-8 text-blue-500" />
+                    <div>
+                      <p className="text-sm font-medium">{file.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {(file.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={handleRemoveFile}
+                    disabled={isUploading || isProcessing}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            
+            {/* 处理状态 */}
+            {(isUploading || isProcessing || uploadedDocumentId) && (
+              <div className="space-y-4 rounded-md bg-muted p-4">
+                {(isUploading || isProcessing) && (
+                  <>
+                    <div className="flex items-center space-x-2">
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span className="text-sm font-medium">正在上传文件...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span className="text-sm font-medium">{processingMessage}</span>
+                        </>
+                      )}
+                    </div>
+                    <Progress value={isUploading ? progress : 100} className="h-2 w-full" />
+                  </>
+                )}
+                
+                {!isUploading && !isProcessing && uploadedDocumentId && (
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex items-center space-x-2 text-green-600">
+                      <CheckCircle2 className="h-5 w-5" />
+                      <span className="text-sm font-medium">处理完成！</span>
+                    </div>
+                    <p className="text-sm">
+                      成功从文档中提取了 {knowledgePointCount} 个知识点。
+                    </p>
+                  </div>
+                )}
               </div>
             )}
-
-            {uploadStatus === "success" && (
-              <Alert className="bg-green-50 text-green-800 border-green-200">
-                <Check className="h-4 w-4 text-green-500" />
-                <AlertTitle>上传成功</AlertTitle>
-                <AlertDescription className="flex items-center">
-                  <Clock className="mr-1 h-3 w-3" />
-                  <span>文档已上传，系统正在处理中，请稍后查看结果</span>
-                </AlertDescription>
-              </Alert>
-            )}
           </CardContent>
+          
           <CardFooter className="flex justify-between">
             <Button
-              type="button"
               variant="outline"
-              onClick={() => router.back()}
-              disabled={uploadStatus === "uploading"}
+              onClick={() => router.push('/admin/knowledge')}
+              disabled={isUploading || isProcessing}
             >
               取消
             </Button>
-            <Button
-              type="submit"
-              disabled={uploadStatus === "uploading" || uploadStatus === "success"}
-            >
-              {uploadStatus === "uploading" ? "上传中..." : "上传文档"}
-            </Button>
+            
+            {!uploadedDocumentId ? (
+              <Button 
+                type="submit" 
+                disabled={!file || !title || !subject || isUploading || isProcessing}
+              >
+                {isUploading || isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {isUploading ? '上传中...' : '处理中...'}
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="mr-2 h-4 w-4" />
+                    上传并提取知识点
+                  </>
+                )}
+              </Button>
+            ) : (
+              <Button onClick={goToManagePage}>
+                查看提取的知识点
+              </Button>
+            )}
           </CardFooter>
         </form>
       </Card>

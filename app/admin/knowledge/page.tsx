@@ -1,12 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Card,
   CardContent,
@@ -16,13 +12,6 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
   Table,
   TableBody,
   TableCell,
@@ -30,7 +19,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs"
 import {
   Dialog,
   DialogContent,
@@ -41,502 +42,798 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
+  PlusCircle,
+  FileText,
   BookOpen,
-  Check,
-  ChevronDown,
-  Edit,
-  Eye,
-  MoreHorizontal,
-  Plus,
   Search,
-  Trash,
+  Edit,
+  Trash2,
+  ExternalLink,
+  FileUp,
+  Loader2,
   Upload,
+  Tag,
+  Star,
 } from "lucide-react"
+import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
+import { Label } from "@/components/ui/label"
+import { toast } from "sonner"
+import { SUBJECTS, SUBJECT_CATEGORIES } from "@/lib/constants"
 
-// 示例数据
-const mockSubjects = [
-  { id: "1", name: "考公" },
-  { id: "2", name: "教资" },
-  { id: "3", name: "法考" },
-]
-
-const mockSubCategories = {
-  "1": [
-    { id: "101", name: "行政职业能力测验" },
-    { id: "102", name: "申论" },
-    { id: "103", name: "公共基础知识" },
-  ],
-  "2": [
-    { id: "201", name: "教育知识与能力" },
-    { id: "202", name: "综合素质" },
-    { id: "203", name: "学科知识" },
-  ],
-  "3": [
-    { id: "301", name: "民法" },
-    { id: "302", name: "刑法" },
-    { id: "303", name: "行政法" },
-  ],
-}
-
-const mockKnowledgeEntries = [
+// 临时示例数据
+const mockDocuments = [
   {
     id: "1",
-    title: "行政处罚的种类和设定",
-    content: "行政处罚的种类主要包括：（一）警告；（二）罚款；（三）没收违法所得、没收非法财物；（四）责令停产停业；（五）暂扣或者吊销许可证、暂扣或者吊销执照；（六）行政拘留；（七）法律、行政法规规定的其他行政处罚。",
-    tags: "行政处罚,行政法",
-    subjectId: "1",
-    subCategoryId: "101",
-    importance: 5,
-    viewCount: 24,
-    createdAt: "2024-05-01T10:30:00Z",
+    title: "行政法基础理论",
+    description: "行政法的基本原理与应用",
+    subject: "法考",
+    subCategory: "行政法",
+    uploadedAt: "2023-05-15",
+    knowledgePointCount: 24,
   },
   {
     id: "2",
-    title: "申论写作的基本要求",
-    content: "申论写作要求考生全面、准确理解给定资料，恰当选择和运用资料内容，合理构建文章结构，正确发表见解，言之有理有据，表达流畅。",
-    tags: "申论,写作",
-    subjectId: "1",
-    subCategoryId: "102",
-    importance: 4,
-    viewCount: 36,
-    createdAt: "2024-05-02T14:20:00Z",
+    title: "民法典人格权解析",
+    description: "民法典中关于人格权的详细解读",
+    subject: "法考",
+    subCategory: "民法",
+    uploadedAt: "2023-06-02",
+    knowledgePointCount: 37,
   },
   {
     id: "3",
-    title: "教育心理学概述",
-    content: "教育心理学是研究教育过程中人的心理现象及其发展规律的科学，是心理学的一个分支学科，也是教育科学的一个组成部分。",
-    tags: "教育心理学,基础概念",
-    subjectId: "2",
-    subCategoryId: "201",
-    importance: 3,
-    viewCount: 18,
-    createdAt: "2024-05-03T09:15:00Z",
+    title: "刑法分则详解",
+    description: "刑法分则各罪名的构成要件解析",
+    subject: "法考",
+    subCategory: "刑法",
+    uploadedAt: "2023-04-28",
+    knowledgePointCount: 52,
   },
 ]
 
+const mockKnowledgePoints = [
+  {
+    id: "101",
+    title: "行政行为的特征",
+    content: "行政行为是行政主体在行政管理过程中行使行政职权，对行政相对人的权利义务产生影响的公法行为。其特征包括：单方性、强制性、推定合法性和公定力。",
+    importance: "HIGH",
+    documentId: "1",
+    documentTitle: "行政法基础理论",
+    subject: "法考",
+    subCategory: "行政法",
+  },
+  {
+    id: "102",
+    title: "行政处罚的种类",
+    content: "行政处罚的种类主要包括：警告、罚款、没收违法所得、责令停产停业、暂扣或吊销许可证、行政拘留等。其中，限制人身自由的行政处罚只能由法律设定。",
+    importance: "HIGH",
+    documentId: "1",
+    documentTitle: "行政法基础理论",
+    subject: "法考",
+    subCategory: "行政法",
+  },
+  {
+    id: "103",
+    title: "行政复议的受案范围",
+    content: "行政复议的受案范围包括：对具体行政行为不服的；认为行政机关违法或者不当行使职权的；认为行政机关不履行法定职责的；对行政机关收费、罚款、没收财物等强制措施不服的等。",
+    importance: "MEDIUM",
+    documentId: "1",
+    documentTitle: "行政法基础理论",
+    subject: "法考",
+    subCategory: "行政法",
+  },
+  {
+    id: "201",
+    title: "人格权的概念",
+    content: "人格权是自然人享有的以人格利益为内容的民事权利，包括生命权、身体权、健康权、姓名权、肖像权、名誉权、隐私权等。人格权具有专属性、不可转让性等特点。",
+    importance: "HIGH",
+    documentId: "2",
+    documentTitle: "民法典人格权解析",
+    subject: "法考",
+    subCategory: "民法",
+  },
+  {
+    id: "301",
+    title: "盗窃罪的构成要件",
+    content: "盗窃罪是指以非法占有为目的，秘密窃取公私财物，数额较大或者多次盗窃、入户盗窃、携带凶器盗窃、扒窃公私财物的行为。客观要件包括秘密窃取行为和财物价值，主观要件为直接故意并具有非法占有目的。",
+    importance: "HIGH",
+    documentId: "3",
+    documentTitle: "刑法分则详解",
+    subject: "法考",
+    subCategory: "刑法",
+  },
+]
+
+// 知识点重要性标签颜色映射
+const importanceColorMap: Record<string, string> = {
+  HIGH: "bg-red-100 text-red-800 hover:bg-red-200",
+  MEDIUM: "bg-yellow-100 text-yellow-800 hover:bg-yellow-200",
+  LOW: "bg-green-100 text-green-800 hover:bg-green-200",
+}
+
+// 文档类型定义
+interface Document {
+  id: string;
+  title: string;
+  description: string;
+  subject: string;
+  subCategory: string;
+  createdAt: string;
+  createdBy: {
+    name: string;
+    image: string;
+  };
+  _count: {
+    knowledgePoints: number;
+  };
+}
+
+// 知识点类型定义
+interface KnowledgePoint {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  importance: number;
+  documentId: string;
+  document: {
+    title: string;
+  };
+}
+
 export default function KnowledgeManagementPage() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("browse")
-  const [selectedSubject, setSelectedSubject] = useState("")
-  const [selectedSubCategory, setSelectedSubCategory] = useState("")
-  const [subCategories, setSubCategories] = useState<{ id: string; name: string }[]>([])
+  const [activeTab, setActiveTab] = useState("upload")
   const [searchQuery, setSearchQuery] = useState("")
-  const [knowledgeEntries, setKnowledgeEntries] = useState(mockKnowledgeEntries)
-
-  // 编辑模式状态
-  const [isEditing, setIsEditing] = useState(false)
-  const [currentEntry, setCurrentEntry] = useState<any>(null)
+  const [selectedDocument, setSelectedDocument] = useState<string | null>(null)
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null)
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   
-  // 删除对话框状态
+  const [documents, setDocuments] = useState<Document[]>([])
+  const [knowledgePoints, setKnowledgePoints] = useState<KnowledgePoint[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
-  const [entryToDelete, setEntryToDelete] = useState<string | null>(null)
+  const [itemToDelete, setItemToDelete] = useState<{ id: string; type: 'document' | 'knowledge' } | null>(null)
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false)
+  
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [knowledgeToEdit, setKnowledgeToEdit] = useState<any | null>(null)
+  const [editTitle, setEditTitle] = useState("")
+  const [editContent, setEditContent] = useState("")
+  const [editImportance, setEditImportance] = useState<string>("")
+  const [isEditLoading, setIsEditLoading] = useState(false)
 
-  // 当选择学科变化时更新子类别
+  // 过滤文档列表
+  const filteredDocuments = documents.filter(doc => 
+    (searchQuery === "" || 
+      doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (doc.description && doc.description.toLowerCase().includes(searchQuery.toLowerCase()))) &&
+    (selectedSubject === null || doc.subject === selectedSubject) &&
+    (selectedCategory === null || doc.subCategory === selectedCategory)
+  )
+  
+  // 过滤知识点列表
+  const filteredKnowledgePoints = knowledgePoints.filter(point => 
+    (searchQuery === "" || 
+      point.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      point.content.toLowerCase().includes(searchQuery.toLowerCase())) &&
+    (selectedDocument === null || point.documentId === selectedDocument) &&
+    (selectedSubject === null || point.subject === selectedSubject) &&
+    (selectedCategory === null || point.subCategory === selectedCategory)
+  )
+
+  // 加载数据
   useEffect(() => {
-    if (selectedSubject) {
-      setSubCategories(mockSubCategories[selectedSubject as keyof typeof mockSubCategories] || [])
-    } else {
-      setSubCategories([])
-    }
-    setSelectedSubCategory("")
-  }, [selectedSubject])
+    fetchData()
+  }, [])
+  
+  // 当标签切换或文档筛选条件变化时刷新数据
+  useEffect(() => {
+    fetchData()
+  }, [activeTab, selectedDocument])
 
-  // 过滤知识条目
-  const filteredEntries = knowledgeEntries.filter((entry) => {
-    const matchesSubject = selectedSubject ? entry.subjectId === selectedSubject : true
-    const matchesSubCategory = selectedSubCategory ? entry.subCategoryId === selectedSubCategory : true
-    const matchesSearch = searchQuery
-      ? entry.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        entry.tags.toLowerCase().includes(searchQuery.toLowerCase())
-      : true
-
-    return matchesSubject && matchesSubCategory && matchesSearch
-  })
-
-  const handleEditEntry = (entry: any) => {
-    setCurrentEntry(entry)
-    setIsEditing(true)
-    setActiveTab("add")
-  }
-
-  const handleDeleteClick = (entryId: string) => {
-    setEntryToDelete(entryId)
-    setIsDeleteDialogOpen(true)
-  }
-
-  const handleDeleteConfirm = () => {
-    if (entryToDelete) {
-      // 真实项目中这里应该调用API删除
-      setKnowledgeEntries(knowledgeEntries.filter(entry => entry.id !== entryToDelete))
-      setIsDeleteDialogOpen(false)
-      setEntryToDelete(null)
-    }
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    // 真实项目中这里应该调用API保存
-    
-    if (isEditing && currentEntry) {
-      // 更新条目
-      setKnowledgeEntries(knowledgeEntries.map(entry => 
-        entry.id === currentEntry.id ? currentEntry : entry
-      ))
-    } else {
-      // 添加新条目
-      const newEntry = {
-        ...currentEntry,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString(),
-        viewCount: 0
+  // 获取数据
+  const fetchData = async () => {
+    setIsLoading(true)
+    try {
+      if (activeTab === "documents") {
+        const response = await fetch('/api/admin/knowledge?type=documents')
+        if (!response.ok) throw new Error('获取文档列表失败')
+        const data = await response.json()
+        setDocuments(data.documents || [])
+      } else {
+        const params = new URLSearchParams()
+        params.append('type', 'knowledge')
+        if (selectedDocument) {
+          params.append('documentId', selectedDocument)
+        }
+        
+        const response = await fetch(`/api/admin/knowledge?${params.toString()}`)
+        if (!response.ok) throw new Error('获取知识点列表失败')
+        const data = await response.json()
+        setKnowledgePoints(data.knowledgePoints || [])
       }
-      setKnowledgeEntries([...knowledgeEntries, newEntry])
+    } catch (error) {
+      console.error('获取数据失败:', error)
+      toast.error('获取数据失败，请稍后重试')
+    } finally {
+      setIsLoading(false)
     }
-    
-    // 重置表单
-    setCurrentEntry(null)
-    setIsEditing(false)
-    setActiveTab("browse")
   }
+
+  // 处理删除
+  const handleDelete = async () => {
+    if (!itemToDelete) return
+    
+    setIsDeleteLoading(true)
+    try {
+      const params = new URLSearchParams()
+      params.append('id', itemToDelete.id)
+      params.append('type', itemToDelete.type)
+      
+      const response = await fetch(`/api/admin/knowledge?${params.toString()}`, {
+        method: 'DELETE',
+      })
+      
+      if (!response.ok) throw new Error('删除失败')
+      
+      // 更新本地状态
+      if (itemToDelete.type === 'document') {
+        setDocuments(docs => docs.filter(doc => doc.id !== itemToDelete.id))
+        setKnowledgePoints(points => points.filter(point => point.documentId !== itemToDelete.id))
+        toast.success('文档已删除')
+      } else {
+        setKnowledgePoints(points => points.filter(point => point.id !== itemToDelete.id))
+        toast.success('知识点已删除')
+      }
+    } catch (error) {
+      console.error('删除失败:', error)
+      toast.error('删除失败，请稍后重试')
+    } finally {
+      setIsDeleteLoading(false)
+      setIsDeleteDialogOpen(false)
+      setItemToDelete(null)
+    }
+  }
+  
+  // 处理编辑
+  const handleEdit = async () => {
+    if (!knowledgeToEdit) return
+    
+    setIsEditLoading(true)
+    try {
+      const response = await fetch('/api/admin/knowledge', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: knowledgeToEdit.id,
+          title: editTitle,
+          content: editContent,
+          importance: editImportance,
+        }),
+      })
+      
+      if (!response.ok) throw new Error('更新失败')
+      
+      // 更新本地状态
+      setKnowledgePoints(points => 
+        points.map(point => 
+          point.id === knowledgeToEdit.id 
+            ? { 
+                ...point, 
+                title: editTitle, 
+                content: editContent,
+                importance: editImportance,
+              } 
+            : point
+        )
+      )
+      
+      toast.success('知识点已更新')
+    } catch (error) {
+      console.error('更新失败:', error)
+      toast.error('更新失败，请稍后重试')
+    } finally {
+      setIsEditLoading(false)
+      setIsEditDialogOpen(false)
+      setKnowledgeToEdit(null)
+    }
+  }
+  
+  // 打开编辑对话框
+  const openEditDialog = (knowledge: any) => {
+    setKnowledgeToEdit(knowledge)
+    setEditTitle(knowledge.title)
+    setEditContent(knowledge.content)
+    setEditImportance(knowledge.importance)
+    setIsEditDialogOpen(true)
+  }
+
+  // 渲染重要性星级
+  const renderImportance = (importance: number) => {
+    return Array(5)
+      .fill(0)
+      .map((_, i) => (
+        <Star 
+          key={i} 
+          size={16} 
+          className={i < importance ? "fill-yellow-400 text-yellow-400" : "text-gray-300"} 
+        />
+      ));
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">知识库管理</h1>
+          <h1 className="text-3xl font-bold tracking-tight">知识点管理</h1>
           <p className="text-sm text-muted-foreground">
-            管理各学科的知识条目，支持添加、编辑和删除操作
+            管理学科知识文档和提取的知识点
           </p>
         </div>
-        <Button onClick={() => {
-          setActiveTab("add")
-          setCurrentEntry({
-            title: "",
-            content: "",
-            tags: "",
-            subjectId: "",
-            subCategoryId: "",
-            importance: 3
-          })
-          setIsEditing(false)
-        }}>
-          <Plus className="mr-2 h-4 w-4" />
-          添加知识条目
+        <Button onClick={() => router.push('/admin/upload')}>
+          <FileUp className="mr-2 h-4 w-4" />
+          上传文档
         </Button>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="browse">浏览知识库</TabsTrigger>
-          <TabsTrigger value="add">
-            {isEditing ? "编辑知识条目" : "添加知识条目"}
+      <div className="flex flex-col space-y-4 md:flex-row md:space-x-4 md:space-y-0">
+        <div className="md:w-2/3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="搜索文档或知识点..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9"
+            />
+          </div>
+        </div>
+        <div className="flex space-x-2 md:w-1/3">
+          <Select value={selectedSubject || ""} onValueChange={(value) => setSelectedSubject(value || null)}>
+            <SelectTrigger>
+              <SelectValue placeholder="选择学科" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">所有学科</SelectItem>
+              <SelectItem value="考公">考公</SelectItem>
+              <SelectItem value="教资">教资</SelectItem>
+              <SelectItem value="法考">法考</SelectItem>
+            </SelectContent>
+          </Select>
+          
+          <Select value={selectedCategory || ""} onValueChange={(value) => setSelectedCategory(value || null)}>
+            <SelectTrigger>
+              <SelectValue placeholder="选择分类" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">所有分类</SelectItem>
+              <SelectItem value="行政法">行政法</SelectItem>
+              <SelectItem value="民法">民法</SelectItem>
+              <SelectItem value="刑法">刑法</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full">
+          <TabsTrigger value="upload" className="flex-1">
+            <FileUp className="mr-2 h-4 w-4" />
+            上传文档
+          </TabsTrigger>
+          <TabsTrigger value="documents" className="flex-1">
+            <FileText className="mr-2 h-4 w-4" />
+            文档 ({filteredDocuments.length})
+          </TabsTrigger>
+          <TabsTrigger value="points" className="flex-1">
+            <BookOpen className="mr-2 h-4 w-4" />
+            知识点 ({filteredKnowledgePoints.length})
           </TabsTrigger>
         </TabsList>
-
-        <TabsContent value="browse" className="space-y-4">
+        
+        <TabsContent value="upload">
           <Card>
             <CardHeader>
-              <CardTitle>筛选条件</CardTitle>
+              <CardTitle>上传文档</CardTitle>
               <CardDescription>
-                选择学科和子类别，或使用关键词搜索知识条目
+                上传学科文档，系统将自动提取知识点
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="subject">学科</Label>
-                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger id="subject">
+                  <Label htmlFor="title">文档标题 *</Label>
+                  <Input
+                    id="title"
+                    placeholder="输入文档标题"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="subject">学科 *</Label>
+                  <Select value={subject} onValueChange={setSubject} required>
+                    <SelectTrigger>
                       <SelectValue placeholder="选择学科" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">全部学科</SelectItem>
-                      {mockSubjects.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name}
+                      {SUBJECTS.map((subj) => (
+                        <SelectItem key={subj.value} value={subj.value}>
+                          {subj.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="subcategory">子类别</Label>
-                  <Select 
-                    value={selectedSubCategory} 
-                    onValueChange={setSelectedSubCategory}
-                    disabled={!selectedSubject}
-                  >
-                    <SelectTrigger id="subcategory">
-                      <SelectValue placeholder={selectedSubject ? "选择子类别" : "请先选择学科"} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">全部子类别</SelectItem>
-                      {subCategories.map((subcategory) => (
-                        <SelectItem key={subcategory.id} value={subcategory.id}>
-                          {subcategory.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="search">搜索</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="搜索标题、内容或标签"
-                      className="pl-8"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
-                  </div>
                 </div>
               </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="subCategory">子类别</Label>
+                  <Select value={subCategory} onValueChange={setSubCategory}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择子类别" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {subject && SUBJECT_CATEGORIES[subject]?.map((cat) => (
+                        <SelectItem key={cat.value} value={cat.value}>
+                          {cat.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="file">文档文件 *</Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                    accept=".pdf,.doc,.docx,.txt,.md,.rtf"
+                    className="cursor-pointer"
+                    required
+                  />
+                  <p className="text-xs text-gray-500">
+                    支持的格式: PDF, Word, TXT, Markdown, RTF
+                  </p>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="description">描述</Label>
+                <Textarea
+                  id="description"
+                  placeholder="输入文档描述"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={4}
+                />
+              </div>
             </CardContent>
+            
+            <CardFooter>
+              <Button type="submit" disabled={uploading} className="w-full">
+                {uploading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    正在上传并提取知识点...
+                  </>
+                ) : (
+                  <>
+                    <FileUp className="mr-2 h-4 w-4" />
+                    上传文档
+                  </>
+                )}
+              </Button>
+            </CardFooter>
           </Card>
-
+        </TabsContent>
+        
+        <TabsContent value="documents" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>知识条目列表</CardTitle>
-              <CardDescription>
-                显示 {filteredEntries.length} 条知识条目
-                {selectedSubject && mockSubjects.find(s => s.id === selectedSubject) 
-                  ? ` - ${mockSubjects.find(s => s.id === selectedSubject)?.name}` 
-                  : ''}
-                {selectedSubCategory && subCategories.find(s => s.id === selectedSubCategory)
-                  ? ` - ${subCategories.find(s => s.id === selectedSubCategory)?.name}`
-                  : ''}
-              </CardDescription>
+            <CardHeader className="px-6 py-4">
+              <CardTitle>文档列表</CardTitle>
+              <CardDescription>已上传的知识文档列表</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>标题</TableHead>
-                    <TableHead>学科 / 子类别</TableHead>
-                    <TableHead>标签</TableHead>
-                    <TableHead className="text-center">重要性</TableHead>
-                    <TableHead className="text-center">查看次数</TableHead>
-                    <TableHead className="text-right">操作</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredEntries.length === 0 ? (
+            <CardContent className="px-6">
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : filteredDocuments.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">暂无文档</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    尚未上传文档或没有符合筛选条件的文档
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => router.push('/admin/upload')}
+                    className="mt-4"
+                  >
+                    <FileUp className="mr-2 h-4 w-4" />
+                    上传文档
+                  </Button>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24 text-center">
-                        没有找到相关知识条目
-                      </TableCell>
+                      <TableHead>标题</TableHead>
+                      <TableHead>学科/分类</TableHead>
+                      <TableHead className="text-center">知识点数</TableHead>
+                      <TableHead>上传日期</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
                     </TableRow>
-                  ) : (
-                    filteredEntries.map((entry) => (
-                      <TableRow key={entry.id}>
-                        <TableCell className="font-medium">{entry.title}</TableCell>
-                        <TableCell>
-                          {mockSubjects.find(s => s.id === entry.subjectId)?.name || '-'} / 
-                          {mockSubCategories[entry.subjectId as keyof typeof mockSubCategories]?.find(
-                            s => s.id === entry.subCategoryId
-                          )?.name || '-'}
+                  </TableHeader>
+                  <TableBody>
+                    {filteredDocuments.map((doc) => (
+                      <TableRow key={doc.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span>{doc.title}</span>
+                            {doc.description && (
+                              <span className="text-sm text-muted-foreground">
+                                {doc.description}
+                              </span>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell>
-                          {entry.tags.split(',').map((tag: string) => (
-                            <Badge key={tag} className="mr-1 mb-1">
-                              {tag}
-                            </Badge>
-                          ))}
+                          <div className="flex flex-col space-y-1">
+                            <Badge variant="outline">{doc.subject}</Badge>
+                            {doc.subCategory && (
+                              <Badge variant="secondary">{doc.subCategory}</Badge>
+                            )}
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          {Array.from({ length: entry.importance }).map((_, i) => (
-                            <span key={i} className="text-yellow-500">★</span>
-                          ))}
+                          <span className="font-medium">{doc._count.knowledgePoints}</span>
                         </TableCell>
-                        <TableCell className="text-center">{entry.viewCount}</TableCell>
+                        <TableCell>
+                          <span>{new Date(doc.createdAt).toLocaleDateString()}</span>
+                        </TableCell>
                         <TableCell className="text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuLabel>操作</DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleEditEntry(entry)}>
-                                <Edit className="mr-2 h-4 w-4" />
-                                编辑
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteClick(entry.id)}>
-                                <Trash className="mr-2 h-4 w-4" />
-                                删除
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <div className="flex justify-end space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setActiveTab("points")
+                                setSelectedDocument(doc.id)
+                              }}
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setItemToDelete({ id: doc.id, type: 'document' })
+                                setIsDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-
-        <TabsContent value="add">
+        
+        <TabsContent value="points" className="mt-4">
           <Card>
-            <CardHeader>
-              <CardTitle>{isEditing ? "编辑知识条目" : "添加知识条目"}</CardTitle>
+            <CardHeader className="px-6 py-4">
+              <CardTitle>知识点列表</CardTitle>
               <CardDescription>
-                {isEditing 
-                  ? "修改知识条目的内容和属性" 
-                  : "创建新的知识条目，填写标题、内容和相关属性"}
+                从文档中提取的知识点列表
+                {selectedDocument && (
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-blue-500" 
+                    onClick={() => setSelectedDocument(null)}
+                  >
+                    清除文档筛选
+                  </Button>
+                )}
               </CardDescription>
             </CardHeader>
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="title">标题</Label>
-                  <Input
-                    id="title"
-                    placeholder="输入知识条目标题"
-                    value={currentEntry?.title || ""}
-                    onChange={(e) => setCurrentEntry({ ...currentEntry, title: e.target.value })}
-                    required
-                  />
+            <CardContent className="px-6">
+              {isLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
                 </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-subject">学科</Label>
-                    <Select 
-                      value={currentEntry?.subjectId || ""} 
-                      onValueChange={(value) => setCurrentEntry({ ...currentEntry, subjectId: value })}
-                      required
-                    >
-                      <SelectTrigger id="edit-subject">
-                        <SelectValue placeholder="选择学科" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockSubjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-subcategory">子类别</Label>
-                    <Select 
-                      value={currentEntry?.subCategoryId || ""} 
-                      onValueChange={(value) => setCurrentEntry({ ...currentEntry, subCategoryId: value })}
-                      disabled={!currentEntry?.subjectId}
-                      required
-                    >
-                      <SelectTrigger id="edit-subcategory">
-                        <SelectValue placeholder={currentEntry?.subjectId ? "选择子类别" : "请先选择学科"} />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {currentEntry?.subjectId && 
-                          mockSubCategories[currentEntry.subjectId as keyof typeof mockSubCategories]?.map((subcategory) => (
-                            <SelectItem key={subcategory.id} value={subcategory.id}>
-                              {subcategory.name}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="importance">重要性</Label>
-                    <Select 
-                      value={currentEntry?.importance?.toString() || "3"} 
-                      onValueChange={(value) => setCurrentEntry({ ...currentEntry, importance: parseInt(value) })}
-                      required
-                    >
-                      <SelectTrigger id="importance">
-                        <SelectValue placeholder="选择重要性级别" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="1">★ - 一般</SelectItem>
-                        <SelectItem value="2">★★ - 较低</SelectItem>
-                        <SelectItem value="3">★★★ - 中等</SelectItem>
-                        <SelectItem value="4">★★★★ - 重要</SelectItem>
-                        <SelectItem value="5">★★★★★ - 核心</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              ) : filteredKnowledgePoints.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <BookOpen className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-medium">暂无知识点</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    尚未提取知识点或没有符合筛选条件的知识点
+                  </p>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tags">标签</Label>
-                  <Input
-                    id="tags"
-                    placeholder="输入标签，使用逗号分隔，如: 行政法,处罚,法条"
-                    value={currentEntry?.tags || ""}
-                    onChange={(e) => setCurrentEntry({ ...currentEntry, tags: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="content">内容</Label>
-                  <Textarea
-                    id="content"
-                    placeholder="输入知识条目内容"
-                    className="min-h-[200px]"
-                    value={currentEntry?.content || ""}
-                    onChange={(e) => setCurrentEntry({ ...currentEntry, content: e.target.value })}
-                    required
-                  />
-                </div>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => {
-                    setActiveTab("browse")
-                    setCurrentEntry(null)
-                    setIsEditing(false)
-                  }}
-                >
-                  取消
-                </Button>
-                <Button type="submit">
-                  {isEditing ? "保存修改" : "创建知识条目"}
-                </Button>
-              </CardFooter>
-            </form>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>标题</TableHead>
+                      <TableHead>来源文档</TableHead>
+                      <TableHead>学科/分类</TableHead>
+                      <TableHead>重要性</TableHead>
+                      <TableHead className="text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredKnowledgePoints.map((point) => (
+                      <TableRow key={point.id}>
+                        <TableCell className="font-medium">
+                          {point.title}
+                        </TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="link" 
+                            className="p-0 h-auto" 
+                            onClick={() => {
+                              setSelectedDocument(point.documentId)
+                            }}
+                          >
+                            {point.document.title}
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col space-y-1">
+                            <Badge variant="outline">{point.subject}</Badge>
+                            {point.subCategory && (
+                              <Badge variant="secondary">{point.subCategory}</Badge>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            className={importanceColorMap[point.importance]}
+                          >
+                            {point.importance === "HIGH" && "高"}
+                            {point.importance === "MEDIUM" && "中"}
+                            {point.importance === "LOW" && "低"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end space-x-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => openEditDialog(point)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setItemToDelete({ id: point.id, type: 'knowledge' })
+                                setIsDeleteDialogOpen(true)
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
+      
       {/* 删除确认对话框 */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>确认删除</DialogTitle>
             <DialogDescription>
-              您确定要删除这个知识条目吗？此操作无法撤销。
+              您确定要删除这{itemToDelete?.type === 'document' ? '个文档及其所有关联的知识点' : '个知识点'}吗？此操作无法撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsDeleteDialogOpen(false)}
+              disabled={isDeleteLoading}
+            >
               取消
             </Button>
-            <Button variant="destructive" onClick={handleDeleteConfirm}>
-              确认删除
+            <Button 
+              variant="destructive" 
+              onClick={handleDelete}
+              disabled={isDeleteLoading}
+            >
+              {isDeleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  删除中...
+                </>
+              ) : '删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* 编辑知识点对话框 */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>编辑知识点</DialogTitle>
+            <DialogDescription>
+              修改知识点的标题、内容和重要性。
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="title">标题</Label>
+              <Input 
+                id="title" 
+                value={editTitle} 
+                onChange={(e) => setEditTitle(e.target.value)} 
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">内容</Label>
+              <Textarea 
+                id="content" 
+                value={editContent} 
+                onChange={(e) => setEditContent(e.target.value)} 
+                className="min-h-[150px]"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="importance">重要性</Label>
+              <Select value={editImportance} onValueChange={setEditImportance}>
+                <SelectTrigger id="importance">
+                  <SelectValue placeholder="选择重要性" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="HIGH">高</SelectItem>
+                  <SelectItem value="MEDIUM">中</SelectItem>
+                  <SelectItem value="LOW">低</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setIsEditDialogOpen(false)}
+              disabled={isEditLoading}
+            >
+              取消
+            </Button>
+            <Button 
+              onClick={handleEdit}
+              disabled={isEditLoading}
+            >
+              {isEditLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  保存中...
+                </>
+              ) : '保存修改'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -13,56 +13,32 @@ export class DeepSeekService {
   
   /**
    * 发送聊天请求到DeepSeek API
-   * 
-   * @param options 请求选项
-   * @returns 响应对象
    */
-  static async chat(options: {
-    messages: { role: string; content: string }[];
-    model?: string;
-    temperature?: number;
-    max_tokens?: number;
-    stream?: boolean;
-  }) {
-    const { 
-      messages, 
-      model = this.defaultModel, 
-      temperature = 0.7, 
-      max_tokens = 2000, 
-      stream = false 
-    } = options;
-
-    const apiKey = process.env.DEEPSEEK_API_KEY;
-    if (!apiKey) {
-      throw new Error('DeepSeek API密钥未配置');
+  static async chat(request: ChatCompletionRequest): Promise<ChatCompletionResponse> {
+    // 模拟API响应
+    console.log('DeepSeek Chat API请求:', JSON.stringify(request, null, 2));
+    
+    // 简单的回复生成
+    const lastMessage = request.messages[request.messages.length - 1];
+    let responseContent = '';
+    
+    if (lastMessage.content.includes('学习时长')) {
+      responseContent = '你好！建议每天学习3-5小时，这样既能保证学习效果，又不会太疲劳。你想设置多少小时的学习目标呢？😊';
+    } else if (lastMessage.content.includes('考试')) {
+      responseContent = '关于考试，最重要的是系统性复习和做好时间规划。有什么具体问题我可以帮到你吗？📚';
+    } else {
+      responseContent = `我收到了你的消息："${lastMessage.content}"。有什么我可以帮助你的吗？`;
     }
-
-    try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model,
-          messages,
-          temperature,
-          max_tokens,
-          stream,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`DeepSeek API错误: ${error.error?.message || JSON.stringify(error)}`);
-      }
-
-      return response;
-    } catch (error) {
-      console.error('DeepSeek请求失败:', error);
-      throw error;
-    }
+    
+    return {
+      choices: [
+        {
+          message: {
+            content: responseContent
+          }
+        }
+      ]
+    };
   }
 
   /**

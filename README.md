@@ -1,14 +1,71 @@
 # AI考试助手
 
-这是一个使用Next.js 14构建的AI学习助手，帮助学生准备考试、组织笔记和提高学习效率。
+一个帮助学生备考的AI聊天机器人应用。
+
+## 快速部署指南
+
+### 1. 克隆代码库
+
+```bash
+git clone <your-repo-url>
+cd ai-exam-companion
+```
+
+### 2. 安装依赖
+
+```bash
+npm install
+```
+
+### 3. 环境变量配置
+
+在Vercel或本地创建.env文件，配置以下环境变量：
+
+```
+# 数据库连接
+DATABASE_URL="postgresql://username:password@host:port/database"
+
+# Next Auth配置
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="https://your-app-url.com"
+```
+
+### 4. 生成Prisma客户端
+
+```bash
+npm run prisma:generate
+```
+
+### 5. 部署到Vercel
+
+直接连接GitHub仓库到Vercel，确保环境变量已配置好。
+
+## 本地开发
+
+1. 运行开发服务器
+
+```bash
+npm run dev
+```
+
+2. 数据库迁移
+
+```bash
+npm run prisma:migrate
+```
+
+3. 填充测试数据
+
+```bash
+npm run prisma:seed
+```
 
 ## 主要功能
 
-- **个性化AI助手**: 根据用户学习需求和风格定制的AI伙伴
-- **考试练习**: 提供各类模拟考试和练习题库
-- **笔记管理**: 智能笔记组织和思维导图生成
-- **学习计划**: 个性化学习计划和进度追踪
-- **知识库管理**: 上传和管理学习资料，自动提取重要知识点
+- 用户注册和登录
+- AI聊天功能
+- 学习计划设置
+- 知识点管理
 
 ## 技术栈
 

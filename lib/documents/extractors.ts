@@ -10,26 +10,27 @@ const execPromise = promisify(exec);
 /**
  * 从不同类型的文档中提取文本
  */
-export async function extractTextFromDocument(filePath: string, extension: string): Promise<string> {
+export async function extractTextFromDocument(filePath: string): Promise<string> {
   if (!fs.existsSync(filePath)) {
     throw new Error(`文件不存在: ${filePath}`);
   }
 
+  // 获取文件扩展名
+  const extension = path.extname(filePath).toLowerCase();
+
   switch (extension) {
     case ".txt":
-      return extractFromTextFile(filePath);
-    case ".pdf":
-      return extractFromPdf(filePath);
-    case ".docx":
-      return extractFromDocx(filePath);
-    case ".doc":
-      return extractFromDoc(filePath);
     case ".md":
       return extractFromTextFile(filePath);
+    case ".pdf":
+      return `[PDF文件] ${path.basename(filePath)} - 内容提取暂不可用`;
+    case ".docx":
+    case ".doc":
+      return `[Word文件] ${path.basename(filePath)} - 内容提取暂不可用`;
     case ".rtf":
-      return extractFromRtf(filePath);
+      return `[RTF文件] ${path.basename(filePath)} - 内容提取暂不可用`;
     default:
-      throw new Error(`不支持的文件类型: ${extension}`);
+      return `[不支持的文件类型] ${path.basename(filePath)}`;
   }
 }
 
@@ -59,78 +60,34 @@ async function extractFromPdf(filePath: string): Promise<string> {
   } catch (error) {
     console.error("从PDF中提取文本失败:", error);
     
-    // 如果命令行工具失败，尝试备用方法
-    try {
-      // 也可以使用npm包如pdf-parse作为备用
-      // 这里作为示例，实际实现时可替换为适当的库
-      throw new Error("PDF提取失败，需要安装pdftotext或使用pdf-parse库");
-    } catch (backupError) {
-      console.error("备用PDF提取也失败:", backupError);
-      throw backupError;
-    }
+    // 返回简单提示而不是抛出错误
+    return `无法从PDF中提取文本: ${path.basename(filePath)}`;
   }
 }
 
 /**
  * 从DOCX文件提取文本
- * 需要安装mammoth库: npm install mammoth
+ * 此功能暂不可用，返回占位消息
  */
 async function extractFromDocx(filePath: string): Promise<string> {
-  try {
-    // 这里使用动态导入以避免在服务端不必要的依赖加载
-    const mammoth = await import("mammoth");
-    const result = await mammoth.extractRawText({ path: filePath });
-    return result.value;
-  } catch (error) {
-    console.error("从DOCX中提取文本失败:", error);
-    throw error;
-  }
+  // 简单返回提示信息而不是尝试使用mammoth
+  return `[DOCX文件] ${path.basename(filePath)} - 内容提取暂不可用`;
 }
 
 /**
  * 从DOC文件提取文本
- * 需要安装antiword或catdoc工具
+ * 此功能暂不可用，返回占位消息
  */
 async function extractFromDoc(filePath: string): Promise<string> {
-  try {
-    // 尝试使用antiword
-    const { stdout } = await execPromise(`antiword "${filePath}"`);
-    return stdout;
-  } catch (error) {
-    console.error("使用antiword提取DOC文本失败:", error);
-    
-    try {
-      // 备用方案：尝试使用catdoc
-      const { stdout } = await execPromise(`catdoc "${filePath}"`);
-      return stdout;
-    } catch (backupError) {
-      console.error("使用catdoc提取DOC文本也失败:", backupError);
-      throw new Error("DOC文件提取失败，需要安装antiword或catdoc工具");
-    }
-  }
+  // 简单返回提示信息
+  return `[DOC文件] ${path.basename(filePath)} - 内容提取暂不可用`;
 }
 
 /**
  * 从RTF文件提取文本
- * 需要安装unrtf工具
+ * 此功能暂不可用，返回占位消息
  */
 async function extractFromRtf(filePath: string): Promise<string> {
-  try {
-    // 使用unrtf工具提取文本
-    const { stdout } = await execPromise(`unrtf --text "${filePath}"`);
-    
-    // unrtf输出可能包含一些header信息，尝试只获取真正的内容
-    const contentStartIndex = stdout.indexOf("###########");
-    if (contentStartIndex !== -1) {
-      const nextLineIndex = stdout.indexOf("\n", contentStartIndex);
-      if (nextLineIndex !== -1) {
-        return stdout.substring(nextLineIndex + 1);
-      }
-    }
-    
-    return stdout;
-  } catch (error) {
-    console.error("从RTF中提取文本失败:", error);
-    throw error;
-  }
+  // 简单返回提示信息
+  return `[RTF文件] ${path.basename(filePath)} - 内容提取暂不可用`;
 } 

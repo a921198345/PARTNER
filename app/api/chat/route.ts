@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { StreamingTextResponse } from 'ai/stream';
-import { KnowledgeService } from "@/lib/knowledge/service";
 import { DeepSeekService } from "@/lib/deepseek";
+import { KnowledgeService } from "@/lib/knowledge/service";
 
 // 使用nodejs运行时而不是edge运行时，确保能正确访问authOptions和prisma
 export const runtime = 'nodejs';
@@ -97,38 +96,35 @@ export async function POST(req: Request) {
         ...formattedPreviousMessages,
         { role: "user", content: message }
       ],
-      stream: true,
     });
 
-    // 创建流式响应
-    const stream = DeepSeekService.processStream(response, {
-      onCompletion: async (completion) => {
-        // 存储AI回复
-        await prisma.chatHistory.create({
-          data: {
-            userId: user.id,
-            message: completion,
-            isUser: false,
-          },
-        });
+    // 获取AI回复
+    const aiMessage = response.choices[0].message.content;
 
-        // 如果是设置学习时长的对话且包含小时数
-        if (isFirstChat && message.includes("小时")) {
-          // 尝试提取用户设置的小时数
-          const hourMatch = message.match(/(\d+(?:\.\d+)?)\s*小时/);
-          if (hourMatch && hourMatch[1]) {
-            const hours = parseFloat(hourMatch[1]);
-            // 更新用户学习时长目标
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { dailyStudyGoal: hours },
-            });
-          }
-        }
+    // 存储AI回复
+    await prisma.chatHistory.create({
+      data: {
+        userId: user.id,
+        message: aiMessage,
+        isUser: false,
       },
     });
 
-    return new StreamingTextResponse(stream);
+    // 如果是设置学习时长的对话且包含小时数
+    if (isFirstChat && message.includes("小时")) {
+      // 尝试提取用户设置的小时数
+      const hourMatch = message.match(/(\d+(?:\.\d+)?)\s*小时/);
+      if (hourMatch && hourMatch[1]) {
+        const hours = parseFloat(hourMatch[1]);
+        // 更新用户学习时长目标
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { dailyStudyGoal: hours },
+        });
+      }
+    }
+
+    return NextResponse.json({ message: aiMessage });
   } catch (error) {
     console.error("聊天请求失败:", error);
     return NextResponse.json(

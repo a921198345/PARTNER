@@ -5,10 +5,10 @@ generator client {
   provider = "prisma-client-js"
 }
 
-   datasource db {
-     provider = "sqlite"
-     url      = env("DATABASE_URL")
-   }
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
 
 // 用户模型
 model User {
@@ -61,6 +61,7 @@ model Subject {
   exams            Exam[]
   knowledgeEntries KnowledgeEntry[] // 知识条目
   documents        Document[] // 知识文档
+  knowledgePoints  KnowledgePoint[] // 知识点
 }
 
 // 科目子类别
@@ -73,6 +74,7 @@ model SubCategory {
   exams            Exam[]
   knowledgeEntries KnowledgeEntry[] // 知识条目
   documents        Document[] // 知识文档
+  knowledgePoints  KnowledgePoint[] // 知识点
 }
 
 // 知识库模型(旧版)
@@ -108,7 +110,8 @@ model KnowledgeEntry {
   updatedAt        DateTime  @updatedAt
   viewCount        Int       @default(0) // 查看次数
   importance       Int       @default(1) // 重要性级别(1-5)
-  processingStep   ProcessingStep? // 关联的处理步骤
+  processingStepId String?   @unique
+  processingStep   ProcessingStep? @relation(fields: [processingStepId], references: [id])
 }
 
 // 文档模型
@@ -116,10 +119,10 @@ model Document {
   id               String    @id @default(uuid())
   title            String
   description      String?
-  fileName         String
-  fileType         String    // pdf, docx, txt等
-  fileUrl          String    // 存储路径
-  fileSize         Int       // 文件大小
+  fileName         String?
+  fileType         String?   // pdf, docx, txt等
+  fileUrl          String?   // 存储路径
+  fileSize         Int?      // 文件大小
   pageCount        Int?      // 页数
   uploadedBy       User      @relation(fields: [uploadedById], references: [id])
   uploadedById     String
@@ -128,6 +131,7 @@ model Document {
   subCategory      SubCategory? @relation(fields: [subCategoryId], references: [id])
   subCategoryId    String?
   knowledgeEntries KnowledgeEntry[] // 从该文档提取的知识条目
+  knowledgePoints  KnowledgePoint[] // 从该文档提取的知识点
   processed        Boolean   @default(false) // 是否已处理
   processingStatus String?   // 处理状态
   createdAt        DateTime  @default(now())
@@ -136,6 +140,24 @@ model Document {
   processingJob    ProcessingJob? @relation(fields: [processingJobId], references: [id])
   processingJobId  String?
   processingSteps  ProcessingStep[] // 处理步骤
+}
+
+// 知识点模型
+model KnowledgePoint {
+  id               String    @id @default(uuid())
+  title            String
+  content          String
+  importance       String    // HIGH, MEDIUM, LOW
+  document         Document  @relation(fields: [documentId], references: [id])
+  documentId       String
+  subject          Subject   @relation(fields: [subjectId], references: [id])
+  subjectId        String
+  subCategory      SubCategory? @relation(fields: [subCategoryId], references: [id])
+  subCategoryId    String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  embeddings       String?   // 向量嵌入，JSON字符串
+  viewCount        Int       @default(0) // 查看次数
 }
 
 // 知识检索日志
@@ -248,52 +270,41 @@ model AnswerAttempt {
   questionId       String
   userAnswer       String
   isCorrect        Boolean
-  createdAt        DateTime  @default(now())
 }
 
-// 聊天历史模型
+// 聊天历史记录
 model ChatHistory {
-  id               String    @id @default(uuid())
-  user             User      @relation(fields: [userId], references: [id])
-  userId           String
-  message          String
-  isUser           Boolean   // true为用户消息，false为AI消息
-  timestamp        DateTime  @default(now())
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String
+  message   String
+  isUser    Boolean  @default(true) // 是否为用户消息
+  createdAt DateTime @default(now())
 }
 
-// 处理任务模型
+// 文档处理任务
 model ProcessingJob {
-  id               String    @id @default(uuid())
-  status           String    // queued, processing, completed, failed
-  priority         Int       @default(1) // 优先级：1-5
-  progress         Float     @default(0) // 处理进度：0-100
-  startTime        DateTime? // 开始处理时间
-  endTime          DateTime? // 结束处理时间
-  errorMessage     String?   // 错误信息
-  documents        Document[] // 关联的文档
-  createdBy        User      @relation(fields: [createdById], references: [id])
-  createdById      String
-  processingSteps  ProcessingStep[] // 处理步骤
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id             String          @id @default(uuid())
+  user           User            @relation(fields: [userId], references: [id])
+  userId         String
+  status         String          // pending, processing, completed, failed
+  startTime      DateTime        @default(now())
+  endTime        DateTime?
+  documents      Document[]      // 关联文档
+  processingSteps ProcessingStep[] // 处理步骤
 }
 
-// 处理步骤模型
+// 处理步骤
 model ProcessingStep {
   id               String    @id @default(uuid())
-  job              ProcessingJob @relation(fields: [jobId], references: [id])
-  jobId            String
-  document         Document  @relation(fields: [documentId], references: [id])
-  documentId       String
-  type             String    // extract_text, extract_knowledge, generate_embeddings
+  processingJob    ProcessingJob @relation(fields: [processingJobId], references: [id])
+  processingJobId  String
+  document         Document? @relation(fields: [documentId], references: [id])
+  documentId       String?
+  knowledgeEntry   KnowledgeEntry?
+  stepName         String    // extraction, embedding, etc
   status           String    // pending, processing, completed, failed
-  progress         Float     @default(0) // 处理进度：0-100
-  result           String?   // 处理结果，可以是JSON字符串
-  startTime        DateTime? // 开始处理时间
-  endTime          DateTime? // 结束处理时间
-  errorMessage     String?   // 错误信息
-  knowledgeEntry   KnowledgeEntry? @relation(fields: [knowledgeEntryId], references: [id])
-  knowledgeEntryId String?   @unique // 关联的知识条目ID
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  startTime        DateTime  @default(now())
+  endTime          DateTime?
+  message          String?   // 错误信息或状态消息
 } 
