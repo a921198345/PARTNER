@@ -17,5 +17,5 @@ if (process.env.NODE_ENV !== "development") {
   globalForPrisma.prisma = prisma;
 }
 
-export { prisma };
+// 只使用默认导出，避免重复导出
 export default prisma; 
