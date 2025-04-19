@@ -38,6 +38,7 @@ model User {
   knowledgeEntries KnowledgeEntry[] // 管理员创建的知识条目
   documents        Document[] // 上传的文档
   processingJobs   ProcessingJob[] // 处理任务
+  dailyStudyGoals  DailyStudyGoal[] // 添加到每日学习目标的关系
 }
 
 // AI角色模型
