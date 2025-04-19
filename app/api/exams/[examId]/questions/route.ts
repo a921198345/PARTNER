@@ -3,14 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-interface Params {
-  params: {
-    examId: string;
-  };
-}
-
-// 获取考试题目
-export async function GET(req: Request, { params }: Params) {
+// 修改路由参数类型为Next.js要求的标准格式
+export async function GET(
+  req: Request,
+  { params }: { params: { examId: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
