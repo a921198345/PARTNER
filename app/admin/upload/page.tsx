@@ -24,7 +24,6 @@ import {
 import {
   Upload,
   File,
-  FilePdf,
   FileText,
   FileImage,
   AlertTriangle,
@@ -173,7 +172,7 @@ export default function UploadDocumentPage() {
     const fileType = selectedFile.type
     
     if (fileType === 'application/pdf') {
-      return <FilePdf className="h-12 w-12 text-red-500" />
+      return <FileText className="h-12 w-12 text-red-500" />
     } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       return <FileText className="h-12 w-12 text-blue-500" />
     } else if (fileType === 'text/plain') {

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { prisma } from "@/lib/db";
-import { StreamingTextResponse } from "ai";
+import { StreamingTextResponse } from 'ai/stream';
 import { KnowledgeService } from "@/lib/knowledge/service";
 import { DeepSeekService } from "@/lib/deepseek";
 
