@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// 使用Next.js官方推荐的路由参数格式
+// 根据Next.js 15规范，params现在是一个Promise
 export async function GET(
   request: NextRequest,
-  { params }: { params: { examId: string } }
+  context: { params: Promise<{ examId: string }> }
 ) {
   try {
     const session = await getServerSession(authOptions);
+    const params = await context.params;
 
     if (!session || !session.user.id) {
       return NextResponse.json(
