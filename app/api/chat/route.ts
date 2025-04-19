@@ -17,16 +17,18 @@ export async function POST(req: NextRequest) {
     const session = await getServerSession(authOptions);
     
     // 确保用户已登录并且session.user存在
-    if (!session || !session.user) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
         { error: '未授权访问' },
         { status: 401 }
       );
     }
 
+    const userId = session.user.id;
+
     // 获取用户信息
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: userId },
       include: { profile: true }
     });
 
