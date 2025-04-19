@@ -14,8 +14,12 @@ export const runtime = "nodejs";
 export async function GET(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "未授权" }, { status: 401 });
+    
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { message: "未授权访问" },
+        { status: 401 }
+      );
     }
 
     const { searchParams } = new URL(req.url);
@@ -47,8 +51,12 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "未授权" }, { status: 401 });
+    
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { message: "未授权访问" },
+        { status: 401 }
+      );
     }
     
     // 检查用户权限（只有管理员可以创建/编辑知识条目）
@@ -130,8 +138,12 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "未授权" }, { status: 401 });
+    
+    if (!session || !session.user || !session.user.id) {
+      return NextResponse.json(
+        { message: "未授权访问" },
+        { status: 401 }
+      );
     }
     
     // 检查用户权限（只有管理员可以删除知识条目）

@@ -8,7 +8,7 @@ export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user.id) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
         { message: "请先登录" },
         { status: 401 }
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || !session.user.id) {
+    if (!session || !session.user || !session.user.id) {
       return NextResponse.json(
         { message: "请先登录" },
         { status: 401 }

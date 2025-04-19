@@ -1,134 +1,124 @@
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/db";
-import { DeepSeekService } from "@/lib/deepseek";
-import { KnowledgeService } from "@/lib/knowledge/service";
+import { prisma } from "@/lib/prisma";
+import { DeepSeekService } from "@/services/DeepSeekService";
+import { Message } from "ai";
 
 // 使用nodejs运行时而不是edge运行时，确保能正确访问authOptions和prisma
 export const runtime = 'nodejs';
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    // 解析请求数据
+    const { messages, createNote } = await req.json();
 
-    if (!session || !session.user.id) {
+    // 验证用户身份
+    const session = await getServerSession(authOptions);
+    
+    // 确保用户已登录并且session.user存在
+    if (!session || !session.user) {
       return NextResponse.json(
-        { message: "请先登录" },
+        { error: '未授权访问' },
         { status: 401 }
       );
     }
 
-    const { message, chatHistory } = await req.json();
-
     // 获取用户信息
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      include: {
-        subject: true,
-        aiCharacter: true,
-      },
+      include: { profile: true }
     });
 
     if (!user) {
       return NextResponse.json(
-        { message: "用户不存在" },
+        { error: '用户不存在' },
         { status: 404 }
       );
     }
 
-    // 存储用户消息
-    await prisma.chatHistory.create({
-      data: {
-        userId: user.id,
-        message,
-        isUser: true,
-      },
-    });
+    // 创建或更新每日学习目标
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-    // 检查是否是首次对话，用于设置学习时长
-    const isFirstChat = message.includes("学习时长") || !user.dailyStudyGoal;
-    const characterPersonality = user.aiCharacter ? 
-      `你是一个${user.aiCharacter.gender === 'female' ? '女性' : '男性'}${user.aiCharacter.type}类型的角色，名字是${user.aiCustomName || user.aiCharacter.name}` : 
-      "你是一个友好的学习助手";
+    await prisma.dailyStudyGoal.upsert({
+      where: {
+        userId_date: {
+          userId: user.id,
+          date: today
+        }
+      },
+      update: {
+        chatCount: { increment: 1 }
+      },
+      create: {
+        userId: user.id,
+        date: today,
+        chatCount: 1,
+        noteCount: 0,
+        quizCount: 0,
+        studyTime: 0
+      }
+    });
 
     // 构建系统提示
-    let systemPrompt = `${characterPersonality}。你是用户${user.userNickname || user.name}的专属学习助手，`;
+    const systemPrompt = `你是一个友好的AI学习助手，名为"考试伙伴"，专注于帮助用户备考${user.profile?.subject || '各类考试'}。
     
-    if (user.subject) {
-      systemPrompt += `专注于帮助用户准备${user.subject.name}考试。`;
-    } else {
-      systemPrompt += `专注于帮助用户准备各类考试。`;
+你应该:
+- 提供准确、简洁的知识点解释
+- 使用友好、鼓励的语气 😊
+- 适当使用表情符号使对话更加生动
+- 在回答中参考相关的考试知识点
+- 提供学习技巧和记忆方法
+- 避免过于复杂的专业术语，使用通俗易懂的语言
+- 鼓励用户定期复习和实践
+
+用户提问时，首先理解问题的核心，然后提供清晰的解答。如果问题涉及多个方面，将回答分成几个部分。在回答结束时，可以提供一个简短的总结或额外的学习建议。
+
+记住始终保持积极、友好的态度，就像一位耐心的学习伙伴！`;
+
+    // 获取最后一条用户消息（用于可能的笔记创建）
+    const lastUserMessage = messages.findLast(
+      (message: Message) => message.role === 'user'
+    );
+
+    // 生成AI响应
+    const aiResponse = await DeepSeekService.generateResponse(
+      systemPrompt,
+      messages
+    );
+
+    // 如果需要，创建笔记
+    if (createNote && lastUserMessage) {
+      await prisma.note.create({
+        data: {
+          userId: user.id,
+          title: lastUserMessage.content.substring(0, 100),
+          content: lastUserMessage.content,
+          aiResponse: aiResponse
+        }
+      });
+
+      // 更新每日笔记计数
+      await prisma.dailyStudyGoal.update({
+        where: {
+          userId_date: {
+            userId: user.id,
+            date: today
+          }
+        },
+        data: {
+          noteCount: { increment: 1 }
+        }
+      });
     }
 
-    // 处理学习时长设置
-    if (isFirstChat) {
-      systemPrompt += `用户想设置每日学习时长目标，请友好地询问他想设置多少小时，并鼓励他坚持。建议每天学习3-5小时。`;
-    } else {
-      systemPrompt += `用户每日学习目标是${user.dailyStudyGoal || "尚未设置"}小时。请鼓励他坚持学习并提供相关帮助。`;
-    }
-
-    systemPrompt += `请使用轻松友好的风格，偶尔加入适当的表情符号，让交流更生动。`;
-
-    // 获取知识库相关内容（新增）
-    let knowledgePrompt = "";
-    if (user.subject && !isFirstChat) {
-      knowledgePrompt = await KnowledgeService.buildKnowledgePrompt(
-        message, 
-        user.subjectId || undefined
-      );
-    }
-    
-    if (knowledgePrompt) {
-      systemPrompt += `\n\n${knowledgePrompt}`;
-    }
-
-    // 准备聊天历史
-    const formattedPreviousMessages = chatHistory.map((chat: any) => ({
-      role: chat.isUser ? "user" : "assistant",
-      content: chat.message,
-    }));
-
-    // 发送到DeepSeek（替换OpenAI）
-    const response = await DeepSeekService.chat({
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...formattedPreviousMessages,
-        { role: "user", content: message }
-      ],
-    });
-
-    // 获取AI回复
-    const aiMessage = response.choices[0].message.content;
-
-    // 存储AI回复
-    await prisma.chatHistory.create({
-      data: {
-        userId: user.id,
-        message: aiMessage,
-        isUser: false,
-      },
-    });
-
-    // 如果是设置学习时长的对话且包含小时数
-    if (isFirstChat && message.includes("小时")) {
-      // 尝试提取用户设置的小时数
-      const hourMatch = message.match(/(\d+(?:\.\d+)?)\s*小时/);
-      if (hourMatch && hourMatch[1]) {
-        const hours = parseFloat(hourMatch[1]);
-        // 更新用户学习时长目标
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { dailyStudyGoal: hours },
-        });
-      }
-    }
-
-    return NextResponse.json({ message: aiMessage });
+    // 返回AI响应
+    return NextResponse.json({ response: aiResponse });
   } catch (error) {
-    console.error("聊天请求失败:", error);
+    console.error('聊天API错误:', error);
     return NextResponse.json(
-      { message: "聊天请求过程中出现错误" },
+      { error: `处理请求时出错: ${(error as Error).message}` },
       { status: 500 }
     );
   }
