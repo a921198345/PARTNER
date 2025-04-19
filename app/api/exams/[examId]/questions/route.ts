@@ -1,12 +1,12 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
-// 修改为标准的Next.js App Router路由参数格式
+// 使用Next.js官方推荐的路由参数格式
 export async function GET(
-  req: Request,
-  context: { params: { examId: string } }
+  request: NextRequest,
+  { params }: { params: { examId: string } }
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -18,8 +18,8 @@ export async function GET(
       );
     }
 
-    const { examId } = context.params;
-    const { searchParams } = new URL(req.url);
+    const { examId } = params;
+    const { searchParams } = request.nextUrl;
     
     // 检查是否请求错题
     const wrongOnly = searchParams.get("wrongOnly") === "true";
