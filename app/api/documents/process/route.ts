@@ -118,7 +118,7 @@ export async function GET(req: NextRequest) {
     // 获取该用户的处理任务
     const jobs = await prisma.processingJob.findMany({
       where: {
-        createdById: user.id
+        userId: user.id
       },
       include: {
         documents: {
@@ -131,7 +131,7 @@ export async function GET(req: NextRequest) {
         }
       },
       orderBy: {
-        createdAt: "desc"
+        startTime: "desc"
       }
     });
     

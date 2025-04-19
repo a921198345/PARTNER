@@ -294,6 +294,7 @@ model ProcessingJob {
   endTime        DateTime?
   documents      Document[]      // 关联文档
   processingSteps ProcessingStep[] // 处理步骤
+  createdAt      DateTime        @default(now())
 }
 
 // 处理步骤
