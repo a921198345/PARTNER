@@ -44,7 +44,7 @@ export async function middleware(request: NextRequest) {
     ) {
       try {
         // 检查用户是否已选择学科和AI角色
-        const res = await fetch(`${process.env.NEXTAUTH_URL}/api/profile`, {
+        const res = await fetch(`${process.env.NEXTAUTH_URL}/api/user/profile`, {
           headers: {
             cookie: request.headers.get("cookie") || "",
             "x-middleware-cache": "no-cache",
