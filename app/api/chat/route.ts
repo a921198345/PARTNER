@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // 获取用户信息
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      include: { profile: true }
+      include: { subject: true }
     });
 
     if (!user) {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 构建系统提示
-    const systemPrompt = `你是一个友好的AI学习助手，名为"考试伙伴"，专注于帮助用户备考${user.profile?.subject || '各类考试'}。
+    const systemPrompt = `你是一个友好的AI学习助手，名为"考试伙伴"，专注于帮助用户备考${user.subject?.name || '各类考试'}。
     
 你应该:
 - 提供准确、简洁的知识点解释

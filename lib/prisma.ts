@@ -1,4 +1,21 @@
-// 重定向到当前的Prisma客户端实现
-import { prisma } from "./db";
+import { PrismaClient } from "@prisma/client";
+
+// 使用globalThis加上类型判断来确保热重载不会创建多个实例
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined;
+};
+
+// 创建Prisma客户端实例
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: ["error"],
+  });
+
+// 只有在生产环境下才将prisma赋值给globalThis
+if (process.env.NODE_ENV !== "development") {
+  globalForPrisma.prisma = prisma;
+}
+
 export { prisma };
 export default prisma; 

@@ -307,4 +307,18 @@ model ProcessingStep {
   startTime        DateTime  @default(now())
   endTime          DateTime?
   message          String?   // 错误信息或状态消息
+}
+
+// 每日学习目标模型
+model DailyStudyGoal {
+  id               String    @id @default(uuid())
+  user             User      @relation(fields: [userId], references: [id])
+  userId           String
+  date             DateTime  @default(now())
+  chatCount        Int       @default(0)  // 聊天次数
+  noteCount        Int       @default(0)  // 创建笔记数量
+  quizCount        Int       @default(0)  // 做题数量
+  studyTime        Float     @default(0)  // 学习时长(小时)
+  
+  @@unique([userId, date], name: "userId_date")
 } 
