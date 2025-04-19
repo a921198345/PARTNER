@@ -204,6 +204,7 @@ model Note {
   userId           String
   title            String
   content          String
+  aiResponse       String?   // AI回复内容
   mindMap          String?   // 思维导图JSON字符串
   attachments      Attachment[]
   createdAt        DateTime  @default(now())
