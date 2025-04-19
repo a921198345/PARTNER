@@ -23,7 +23,7 @@ npm install
 
 ```
 # 数据库连接
-DATABASE_URL="postgresql://username:password@host:port/database"
+DATABASE_URL="postgresql://username:password@hostname:port/database_name"
 
 # Next Auth配置
 NEXTAUTH_SECRET="your-secret-key"

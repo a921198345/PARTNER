@@ -20,9 +20,9 @@ export default function Home() {
             className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 text-center"
           >
             注册账号
-          </Link>
+            </Link>
         </div>
-      </div>
+    </div>
     </main>
   )
 }
