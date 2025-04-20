@@ -1,9 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { signIn } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,38 +9,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Brain } from "lucide-react"
 
 export default function LoginPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const callbackUrl = searchParams?.get("callbackUrl") || "/dashboard"
-  
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState("")
-
+  
+  // 登录功能仅用于展示，不会实际登录
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
-    setError("")
-
-    try {
-      const result = await signIn("credentials", {
-        redirect: false,
-        email,
-        password,
-      })
-
-      if (result?.error) {
-        setError("邮箱或密码错误")
-        setIsLoading(false)
-        return
-      }
-
-      router.push(callbackUrl)
-    } catch (error) {
-      setError("登录失败，请稍后再试")
+    
+    // 模拟登录延迟
+    setTimeout(() => {
       setIsLoading(false)
-    }
+      // 仅用于演示，实际不会跳转
+      alert("登录功能仅用于展示，不会实际登录")
+    }, 1000)
   }
 
   return (
@@ -72,11 +53,6 @@ export default function LoginPage() {
             <CardDescription className="text-white/70">登录您的账户继续学习</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {error && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-md text-red-400 text-sm">
-                {error}
-              </div>
-            )}
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">邮箱</Label>
@@ -93,7 +69,7 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="password">密码</Label>
-                  <Link href="/forgot-password" className="text-xs text-white/70 hover:text-white">
+                  <Link href="/" className="text-xs text-white/70 hover:text-white">
                     忘记密码?
                   </Link>
                 </div>

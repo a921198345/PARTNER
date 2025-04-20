@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,8 +9,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Brain } from "lucide-react"
 
 export default function RegisterPage() {
-  const router = useRouter()
-  
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -19,6 +16,7 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // 注册功能仅用于展示，不会实际注册
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
@@ -30,31 +28,12 @@ export default function RegisterPage() {
       return
     }
 
-    try {
-      const response = await fetch("/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-        }),
-      })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.message || "注册失败")
-      }
-
-      // 注册成功，跳转到登录页
-      router.push("/login?registered=true")
-    } catch (error: any) {
-      setError(error.message || "注册失败，请稍后再试")
+    // 模拟注册延迟
+    setTimeout(() => {
       setIsLoading(false)
-    }
+      // 仅用于演示
+      alert("注册功能仅用于展示，不会实际创建账户")
+    }, 1000)
   }
 
   return (
