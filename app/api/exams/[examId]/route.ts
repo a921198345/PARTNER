@@ -143,10 +143,10 @@ const mockExams = [
 // 获取单个考试
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { examId: string } }
 ) {
   try {
-    const examId = params.id;
+    const examId = params.examId;
     
     // 查找指定ID的考试
     const exam = mockExams.find((exam) => exam.id === examId);
@@ -173,10 +173,10 @@ export async function GET(
 // 更新考试
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { examId: string } }
 ) {
   try {
-    const examId = params.id;
+    const examId = params.examId;
     const updateData = await req.json();
     
     // 查找指定ID的考试
@@ -238,10 +238,10 @@ export async function PUT(
 // 删除考试
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { examId: string } }
 ) {
   try {
-    const examId = params.id;
+    const examId = params.examId;
     
     // 查找指定ID的考试
     const examIndex = mockExams.findIndex((exam) => exam.id === examId);

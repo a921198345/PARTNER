@@ -150,4 +150,69 @@ export class DeepSeekService {
       throw error;
     }
   }
+}
+
+/**
+ * 聊天消息接口
+ */
+export interface ChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+/**
+ * 聊天请求接口
+ */
+export interface ChatCompletionRequest {
+  model: string;
+  messages: ChatMessage[];
+  temperature?: number;
+  max_tokens?: number;
+  stream?: boolean;
+}
+
+/**
+ * 聊天响应接口
+ */
+export interface ChatCompletionResponse {
+  choices: {
+    message: {
+      content: string;
+    };
+  }[];
+}
+
+/**
+ * 发送问题给指定角色的DeepSeek AI
+ * @param role 角色名称
+ * @param question 用户问题
+ * @returns AI回答内容
+ */
+export async function askDeepseek(role: string, question: string): Promise<string> {
+  try {
+    // 根据不同角色设置不同的系统提示
+    const rolePrompts: Record<string, string> = {
+      'law-expert': '你是一位精通中国法律条文的法考专家，擅长解析法律条文。',
+      'case-analyst': '你是一位案例分析专家，擅长剖析法律案例，提取关键信息并做出精准判断。',
+      'exam-coach': '你是一位法考辅导老师，擅长讲解法考知识点和解题技巧。',
+      'default': '你是一位AI助手，擅长解答法律相关问题。'
+    };
+    
+    const systemPrompt = rolePrompts[role] || rolePrompts['default'];
+    
+    const messages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: question }
+    ];
+    
+    const response = await DeepSeekService.chat({
+      model: 'deepseek-chat',
+      messages: messages
+    });
+    
+    return response.choices[0].message.content;
+  } catch (error) {
+    console.error('调用DeepSeek API失败:', error);
+    return '抱歉，我暂时无法回答这个问题。请稍后再试。';
+  }
 } 

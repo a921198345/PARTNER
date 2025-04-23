@@ -1,0 +1,45 @@
+产品文档规划（MVP 版）
+
+1. 产品概览
+- 专注法考试学习助手网站  
+- 入口页面：用户选择 AI 角色（如“法条专家”“案例解析师”）  
+- 对话页面：基于 DeepSeek API 调用后台知识库，实时回答用户提问  
+
+2. 目标用户
+- 法考备考学员  
+- 需要快速检索法条和案例解析的用户  
+
+3. MVP 核心功能
+1. 角色选择页面  
+  - 简单的角色卡片展示  
+  - 点击进入对应 AI 对话页  
+2. AI 对话页面  
+  - 输入框 + 发送按钮  
+  - 对话消息列表展示（用户提问 + AI 回答）  
+  - 调用 DeepSeek API，结合预先上传的知识库内容  
+3. 知识库管理（初期最简化）  
+  - 以静态 JSON 或 Markdown 文件形式存储  
+  - 后端（Serverless）函数读取并传给 DeepSeek  
+4. 部署准备  
+  - 代码托管在 GitHub  
+  - 自动化部署配置（Vercel）  
+   ## 4. 文档目录结构示例  
+   /docs
+└─ product.md # 本产品文档
+/src
+├─ pages
+│ ├─ index.tsx # 角色选择页
+│ └─ chat/[role].tsx # 对话页
+├─ components
+│ └─ ChatBubble.tsx
+└─ lib
+└─ deepseek.ts # DeepSeek API 封装
+/vercel.json # Vercel 部署配置
+5. 技术栈与开发语言
+- 框架：Next.js (React)  
+- 语言：TypeScript  
+- 样式：Tailwind CSS
+- 后端：Next.js API Routes（Serverless Functions，Node.js 环境）  
+- AI 调用：DeepSeek REST API  
+- 部署：Vercel 一键部署  
+- 知识库存储：JSON/Markdown + Serverless 读取  

@@ -31,6 +31,7 @@ import {
 } from "lucide-react"
 import * as THREE from "three"
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls"
+import { askDeepseek } from "@/lib/deepseek"
 
 type Message = {
   id: string
@@ -183,7 +184,7 @@ export default function ChatPage() {
     return () => clearTimeout(timer)
   }, [])
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return
 
     const newMessage: Message = {
@@ -195,18 +196,49 @@ export default function ChatPage() {
 
     setMessages([...messages, newMessage])
     setInput("")
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        content:
-          "了解了！根据你的情况，我建议我们先从基础知识开始复习，然后逐步深入到重点和难点。我已经为你生成了一个为期3个月的学习计划，你可以在右侧的&quot;学习计划&quot;标签中查看详细内容。每天我会根据计划提醒你需要完成的任务，并且随时为你解答问题。你觉得这个计划怎么样？",
-        sender: "ai",
-        timestamp: new Date(),
+    
+    // 显示加载状态
+    const loadingId = Date.now().toString() + "-loading"
+    setMessages(prev => [...prev, {
+      id: loadingId,
+      content: "正在思考...",
+      sender: "ai",
+      timestamp: new Date(),
+    }])
+    
+    try {
+      // 调用DeepSeek API获取回答
+      const response = await askDeepseek("exam-coach", input)
+      
+      // 移除加载消息，添加实际回答
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== loadingId).concat({
+          id: Date.now().toString(),
+          content: response,
+          sender: "ai",
+          timestamp: new Date(),
+        })
+      )
+      
+      // 可选：朗读回答
+      if (isSpeaking) {
+        const utterance = new SpeechSynthesisUtterance(response)
+        utterance.lang = "zh-CN"
+        window.speechSynthesis.speak(utterance)
       }
-      setMessages((prev) => [...prev, aiResponse])
-    }, 1000)
+    } catch (error) {
+      console.error("获取AI回答失败:", error)
+      
+      // 显示错误消息
+      setMessages(prev => 
+        prev.filter(msg => msg.id !== loadingId).concat({
+          id: Date.now().toString(),
+          content: "抱歉，我暂时无法回答这个问题。请稍后再试。",
+          sender: "ai",
+          timestamp: new Date(),
+        })
+      )
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
